@@ -44,7 +44,7 @@ fn main() {
     }
     println!("{}",secret);
     println!("Welcom to HangmanRust game");
-    println!("now guess the word:");
+    println!("now guess the letter:");
     println!("you have {} more guess",count);
     println!("{}",guess_word );
 
