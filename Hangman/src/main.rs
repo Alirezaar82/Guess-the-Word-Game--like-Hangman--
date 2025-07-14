@@ -7,70 +7,79 @@ fn get_random_word() -> String {
     let reader = BufReader::new(file);
 
     let words: Vec<String> = reader
-    .lines()
-    .filter_map(Result::ok)
-    .filter(|w| w.len() > 4 && w.len() <= 8)
-    .collect();
+        .lines()
+        .filter_map(Result::ok)
+        .filter(|w| w.len() > 4 && w.len() <= 8)
+        .collect();
 
     let word = words.choose(&mut rand::thread_rng()).unwrap();
     word.to_string()
-
 }
 
-fn check_answer(secret_word:String,user_answer:String) -> (String, bool) {
+fn check_answer(secret_word: &str, user_guess: char, guess_word: &str) -> (String, bool) {
     let mut has_change = false;
     let secret_chars: Vec<char> = secret_word.chars().collect();
-    let mut masked_word: Vec<char> = vec!['*'; secret_word.len()];
+    let mut masked_word: Vec<char> = guess_word.chars().collect();
 
     for (i, ch) in secret_chars.iter().enumerate() {
-        if user_answer.contains(*ch) {
+        if *ch == user_guess && masked_word[i] == '*' {
             masked_word[i] = *ch;
             has_change = true;
         }
     }
+
     let result: String = masked_word.iter().collect();
-    (result,has_change)
+    (result, has_change)
 }
 
 fn main() {
     let mut guess_count = 0;
     let secret = get_random_word();
-    // println!("Secret word is: {}", secret);
     let len_secret_word = secret.len();
-    let mut count = len_secret_word+1;
-    let mut guess_word  = String::new();
-    for _ in 0..len_secret_word {
-        guess_word  += "*";
-    }
-    println!("{}",secret);
-    println!("Welcom to HangmanRust game");
-    println!("now guess the letter:");
-    println!("you have {} more guess",count);
-    println!("{}",guess_word );
+    let mut remaining_guesses = len_secret_word + 1;
 
-    while true{
-        let mut user_guess = String::new();
-        io::stdin().read_line(&mut user_guess).expect("Failed to read input");
+    let mut guess_word = "*".repeat(len_secret_word); // Init masked word
+
+    println!("Welcome to HangmanRust game!");
+    println!("Guess the secret word letter by letter.");
+    println!("You have {} guesses.\n", remaining_guesses);
+    println!("Word: {}", guess_word);
+
+    while remaining_guesses > 0 {
+        println!("\nEnter a letter:");
+        let mut user_input = String::new();
+        io::stdin().read_line(&mut user_input).expect("Failed to read input");
+        let user_input = user_input.trim().to_lowercase();
+
+        if user_input.len() != 1 {
+            println!("Please enter a single letter.");
+            continue;
+        }
+
+        let guess_char = user_input.chars().next().unwrap();
+
         guess_count += 1;
-        let (guess_word,has_guess) = check_answer(secret.to_string(),user_guess.trim().to_lowercase());
-        let user_guess = user_guess.trim().to_lowercase();
-        if secret == user_guess{
-            println!("you won!!!");
-            println!("Your guess count is {}",guess_count);
+
+        let (new_guess_word, has_guess) = check_answer(&secret, guess_char, &guess_word);
+
+        if has_guess {
+            println!("✅ You found a letter!");
+            guess_word = new_guess_word;
+        } else {
+            remaining_guesses -= 1;
+            println!("❌ Wrong guess. {} guesses left.", remaining_guesses);
+        }
+
+        println!("Word: {}", guess_word);
+
+        if guess_word == secret {
+            println!("\n🎉 You won! The word was: {}", secret);
+            println!("Total guesses: {}", guess_count);
             break;
         }
-        if has_guess == true{
-            println!("you find a letter\n keep going!");
-            println!("Guess word: {}", user_guess);
-            println!("Result: {}", guess_word);
-        }else if has_guess == false{
-            count -= 1;
-            println!("nothing try again!");
-            println!("you have {} more guess",count);
-        }
-        if count == 0 {
-            println!("you loss");
-            break;
-        }
+    }
+
+    if guess_word != secret {
+        println!("\n💀 You lost! The word was: {}", secret);
     }
 }
